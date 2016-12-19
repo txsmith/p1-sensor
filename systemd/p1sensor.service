@@ -1,0 +1,9 @@
+[Unit]
+Description=Push P1 DSMRv4 energy readings to Firebase
+OnFailure=p1failurelog@%i.service
+
+[Service]
+ExecStart=/home/thomas/p1-sensor/bash/p1-service.sh
+
+[Install]
+WantedBy=multi-user.target

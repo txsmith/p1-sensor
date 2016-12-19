@@ -1,0 +1,6 @@
+[Unit]
+Description=Respond to failure of the p1sensor service
+
+[Service]
+Type=oneshot
+ExecStart=/home/thomas/p1-sensor/bash/failure-mailer.sh
