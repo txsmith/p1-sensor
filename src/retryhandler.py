@@ -33,8 +33,8 @@ class RetryHandler:
             self._evaluator.eval(node)
             self._tries = 0
             return True
-        except Exception as e:
-            traceback.print_tb(e.__traceback__)
+        except Exception:
+            logging.exception("Exception when evaluating: " + str(node))
             self._tries += 1
             self.checkMaxTries()
             self.grace()
@@ -42,7 +42,7 @@ class RetryHandler:
 
     def checkMaxTries(self):
         if self._tries >= self._maxTries:
-            logging.error('Exceeded the maximum amount of retries!')
+            logging.error('Exceeded the maximum amount of retries! Shutting down.')
             os._exit(-1)
 
     def _triesStr(self):
@@ -50,7 +50,6 @@ class RetryHandler:
 
     def grace(self):
         self._inGracePeriod = True
-        waitTime = self._comupteWaitTime()
         waitTime = self._comupteWaitTime()
 
         def endGrace():
