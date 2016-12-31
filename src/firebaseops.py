@@ -91,7 +91,7 @@ class FirebaseLiveEvaluator:
         self._pathPrefix = config['firebasePathPrefix']
 
     def eval(self, node):
-        logging.debug(node)
+        # logging.debug(node)
         if self._pathPrefix:
             return node.eval(self._db.child(self._pathPrefix))
         else:
@@ -102,5 +102,20 @@ class FirebaseLoggingEvaluator:
         logging.info(node)
 
 class FirebaseExceptionEvaluator:
+    def __init__(self, config):
+        logging.info('Initializing Firebase connection...')
+        self._firebase = pyrebase.initialize_app(config)
+        self._db = self._firebase.database()
+        self._pathPrefix = config['firebasePathPrefix']
+        self._throw = True
+
     def eval(self, node):
-        raise HTTPError()
+        if self._throw:
+            self._throw = False
+            raise HTTPError("I Broke")
+
+        logging.debug(node)
+        if self._pathPrefix:
+            return node.eval(self._db.child(self._pathPrefix))
+        else:
+            return node.eval(self._db)

@@ -16,23 +16,24 @@ logging.basicConfig(
 
 # fb = FirebaseLoggingEvaluator()
 fb = FirebaseLiveEvaluator(config)
+# fbE = FirebaseExceptionEvaluator(config)
 handler = RetryHandler(fb, config['exceptionRetries'])
-
+handler.startWorker()
 
 def pushHourToFirebase(measurements):
-    handler.tryEval(Node('measurements').child('hour').set(measurements))
+    handler.enqueue(Node('measurements').child('hour').set(measurements))
 
 def pushDayToFirebase(measurements):
-    handler.tryEval(Node('measurements').child('day').set(measurements))
+    handler.enqueue(Node('measurements').child('day').set(measurements))
 
 def pushWeekToFirebase(measurements):
-    handler.tryEval(Node('measurements').child('week').set(measurements))
+    handler.enqueue(Node('measurements').child('week').set(measurements))
 
 def pushMonthToFirebase(measurements):
-    handler.tryEval(Node('measurements').child('month').set(measurements))
+    handler.enqueue(Node('measurements').child('month').set(measurements))
 
 def pushYearToFirebase(measurements):
-    handler.tryEval(Node('measurements').child('year').set(measurements))
+    handler.enqueue(Node('measurements').child('year').set(measurements))
 
 def sumHour(measurements):
     return sum(measurements)/360
@@ -106,7 +107,7 @@ try:
         hourSketch.rotate(now.isoformat(), packet.kWhUsage)
         lastMeasure = now
 
-        handler.tryEval(Update({
+        handler.enqueue(Update({
             'last-update': now.isoformat(),
             'current-tariff': packet.currentTariff,
             'current-usage': packet.kWhUsage,
