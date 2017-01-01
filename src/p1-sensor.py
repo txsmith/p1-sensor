@@ -102,7 +102,7 @@ try:
             if not (lastMeasure.month == now.month):
                 logging.debug('A month passed')
                 monthSketch.propagateSummary()
-                monthSketch.resize(monthrange(now.year, now.month))
+                monthSketch.resize(monthrange(now.year, now.month)[1])
 
         hourSketch.rotate(now.isoformat(), packet.kWhUsage)
         lastMeasure = now
@@ -116,6 +116,5 @@ try:
         }))
 
         packet = reader.readPacket()
-
 except KeyboardInterrupt:
     sys.exit(0)
