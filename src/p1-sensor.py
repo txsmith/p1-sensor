@@ -35,15 +35,13 @@ def pushMonthToFirebase(measurements):
 def pushYearToFirebase(measurements):
     handler.enqueue(Node('measurements').child('year').set(measurements))
 
-def sumHour(measurements):
-    return sum(measurements)/360
 
 logging.info('Fetching previous records...')
 yearData = fb.eval(Node('measurements').child('year').get()).val()
 monthData = fb.eval(Node('measurements').child('month').get()).val()
 weekData = fb.eval(Node('measurements').child('week').get()).val()
 dayData = fb.eval(Node('measurements').child('day').get()).val()
-hourData = fb.eval(Node('measurements').child('hour').get()).val()
+quarterData = fb.eval(Node('measurements').child('quarterHour').get()).val()
 
 now = datetime.now()
 daysInMonth = monthrange(now.year, now.month)[1]
@@ -60,12 +58,12 @@ weekSketch = Sketch(5, pushWeekToFirebase)
 if weekData:
     weekSketch.setData(weekData)
 
-daySketch = Sketch(24*4, pushDayToFirebase, [weekSketch, monthSketch])
+daySketch = Sketch(24*4, pushDayToFirebase, [weekSketch, monthSketch], lambda ms: sum(ms)/4)
 if dayData:
     daySketch.setData(dayData)
 
 # Live usage from the 15 minutes (90 measurements, one per 10 seconds)
-quarterSketch = Sketch(90, lambda x: x, [daySketch], lambda ms: sum(ms)/4)
+quarterSketch = Sketch(90, lambda x: x, [daySketch], lambda ms: sum(ms)/90)
 if quarterData:
     quarterSketch.setData(quarterData)
 
@@ -93,7 +91,7 @@ try:
         }))
 
         if lastMeasure:
-            if not (round(lastMeasure.minutes/60*4) == round(now.minutes/60*4)):
+            if not (int(lastMeasure.minute/60*4) == int(now.minute/60*4)):
                 logging.debug('15 minutes passed')
                 quarterSketch.propagateSummary()
 
@@ -110,8 +108,10 @@ try:
                 monthSketch.propagateSummary()
                 monthSketch.resize(monthrange(now.year, now.month)[1])
 
-        hourSketch.rotate(now.isoformat(), packet.kWhUsage)
+        quarterSketch.rotate(now.isoformat(), packet.kWhUsage)
         lastMeasure = now
         packet = reader.readPacket()
 except KeyboardInterrupt:
     sys.exit(0)
+
+handler.joinWorker();

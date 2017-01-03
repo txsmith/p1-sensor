@@ -10,16 +10,21 @@ class RetryHandler:
         self._queue = Queue(maxQueued)
         self._tries = 0
         self._failedRequest = None
+        self._shouldJoin = False
+        self._workerThread = None
 
     def startWorker(self):
         def worker():
             logging.debug("Started queue-worker")
-            while True:
+            while not (self._shouldJoin and self._queue.empty()):
                 self._processQueue()
 
         self._workerThread = threading.Thread(name="queue-worker", target=worker)
-        self._workerThread.daemon = True
         self._workerThread.start()
+
+    def joinWorker(self):
+        self._shouldJoin = True
+        self._workerThread.join()
 
     def enqueue(self, r):
         self._queue.put(r)
@@ -30,8 +35,11 @@ class RetryHandler:
             logging.info('Retrying failed request')
             request = self._failedRequest
         else:
-            request = self._queue.get()
-            logging.debug('Processing queued request (' + str(self._queue.qsize()) + ' remaining)')
+            try:
+                request = self._queue.get(timeout=2)
+                logging.debug('Processing queued request (' + str(self._queue.qsize()) + ' remaining)')
+            except:
+                return
 
         try:
             self._evaluator.eval(request)
