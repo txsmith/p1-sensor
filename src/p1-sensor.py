@@ -60,16 +60,14 @@ weekSketch = Sketch(5, pushWeekToFirebase)
 if weekData:
     weekSketch.setData(weekData)
 
-daySketch = Sketch(24, pushDayToFirebase, [weekSketch, monthSketch])
+daySketch = Sketch(24*4, pushDayToFirebase, [weekSketch, monthSketch])
 if dayData:
     daySketch.setData(dayData)
 
-# Live usage from the past hour (360 measurements, one per 10 seconds)
-hourSketch = Sketch(360, pushHourToFirebase, [daySketch], sumHour)
-if hourData:
-    hourSketch.setData(hourData)
-
-
+# Live usage from the 15 minutes (90 measurements, one per 10 seconds)
+quarterSketch = Sketch(90, lambda x: x, [daySketch], lambda ms: sum(ms)/4)
+if quarterData:
+    quarterSketch.setData(quarterData)
 
 try:
     lastUpdate = fb.eval(Node('last-update').get()).val()
@@ -86,10 +84,18 @@ try:
     while packet:
         now = packet.getDatetime()
 
+        handler.enqueue(Update({
+            'last-update': now.isoformat(),
+            'current-tariff': packet.currentTariff,
+            'current-usage': packet.kWhUsage,
+            't1-counter': packet.t1,
+            't2-counter': packet.t2
+        }))
+
         if lastMeasure:
-            if not (lastMeasure.hour == now.hour):
-                logging.debug('An hour passed')
-                hourSketch.propagateSummary()
+            if not (round(lastMeasure.minutes/60*4) == round(now.minutes/60*4)):
+                logging.debug('15 minutes passed')
+                quarterSketch.propagateSummary()
 
             if not (lastMeasure.day == now.day):
                 logging.debug('A day passed')
@@ -106,15 +112,6 @@ try:
 
         hourSketch.rotate(now.isoformat(), packet.kWhUsage)
         lastMeasure = now
-
-        handler.enqueue(Update({
-            'last-update': now.isoformat(),
-            'current-tariff': packet.currentTariff,
-            'current-usage': packet.kWhUsage,
-            't1-counter': packet.t1,
-            't2-counter': packet.t2
-        }))
-
         packet = reader.readPacket()
 except KeyboardInterrupt:
     sys.exit(0)

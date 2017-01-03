@@ -30,8 +30,8 @@ class RetryHandler:
             logging.info('Retrying failed request')
             request = self._failedRequest
         else:
-            logging.debug('Processing queued request (' + str(self._queue.qsize()) + ' remaining)')
             request = self._queue.get()
+            logging.debug('Processing queued request (' + str(self._queue.qsize()) + ' remaining)')
 
         try:
             self._evaluator.eval(request)
